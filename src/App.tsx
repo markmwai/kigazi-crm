@@ -1,6 +1,7 @@
 import { ClerkLoaded, ClerkProvider } from "@clerk/clerk-react";
 
 import { CRM } from "@/components/atomic-crm/root/CRM";
+import { KigaziIdentityProvider } from "@/components/atomic-crm/auth/ClerkIdentity";
 import { config } from "@/components/atomic-crm/root/config";
 import {
   KIGAZI_SIGN_IN_URL,
@@ -32,7 +33,9 @@ const App = () =>
       afterSignOutUrl={KIGAZI_SIGN_IN_URL}
     >
       <ClerkLoaded>
-        <CRM />
+        <KigaziIdentityProvider>
+          <CRM />
+        </KigaziIdentityProvider>
       </ClerkLoaded>
     </ClerkProvider>
   ) : (

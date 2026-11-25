@@ -7,12 +7,15 @@ import { UserMenu } from "@/components/admin/user-menu";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 import { useConfigurationContext } from "../root/ConfigurationContext";
+import { useKigaziIdentity } from "../auth/kigazi-identity";
+import { AppSwitcher } from "./AppSwitcher";
 import { ImportPage } from "../misc/ImportPage";
 import { ChangelogPage } from "../misc/ChangelogPage";
 import { GlobalSearchButton } from "../search/GlobalSearchButton";
 
 const Header = () => {
   const { darkModeLogo, lightModeLogo, title } = useConfigurationContext();
+  const identity = useKigaziIdentity();
   const location = useLocation();
   const translate = useTranslate();
 
@@ -35,22 +38,33 @@ const Header = () => {
         <header className="bg-secondary">
           <div className="px-4">
             <div className="flex justify-between items-center flex-1">
-              <Link
-                to="/"
-                className="flex items-center gap-2 text-secondary-foreground no-underline"
-              >
-                <img
-                  className="[.light_&]:hidden h-6"
-                  src={darkModeLogo}
-                  alt={title}
-                />
-                <img
-                  className="[.dark_&]:hidden h-6"
-                  src={lightModeLogo}
-                  alt={title}
-                />
-                <h1 className="text-xl font-semibold">{title}</h1>
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/"
+                  className="flex items-center gap-2 text-secondary-foreground no-underline"
+                >
+                  <img
+                    className="[.light_&]:hidden h-6"
+                    src={darkModeLogo}
+                    alt={title}
+                  />
+                  <img
+                    className="[.dark_&]:hidden h-6"
+                    src={lightModeLogo}
+                    alt={title}
+                  />
+                  <h1 className="text-xl font-semibold">{title}</h1>
+                </Link>
+                {identity && (
+                  <AppSwitcher
+                    currentAppId="crm"
+                    apps={identity.apps}
+                    enabledAppIds={identity.enabledAppIds}
+                    organizationName={identity.organizationName}
+                    onSignOut={identity.signOut}
+                  />
+                )}
+              </div>
               <div>
                 <nav className="flex">
                   <NavigationTab

@@ -1,7 +1,9 @@
 /**
- * The CRM is a satellite of the Kigazi central auth hub (kigazi.com): Clerk
- * owns sign-in, sign-up, and organizations, and Supabase only verifies the
- * Clerk session token (see supabase/config.toml, third-party auth).
+ * Clerk owns sign-in, sign-up, and organizations for the Kigazi ecosystem.
+ * kigazi.com and its product subdomains share one root domain, so Clerk shares
+ * the session (and active organization) across them by default — no satellite
+ * domain configuration is involved. Supabase only verifies the Clerk session
+ * token (see supabase/config.toml, third-party auth).
  */
 
 export const KIGAZI_SIGN_IN_URL = "https://kigazi.com/sign-in";
