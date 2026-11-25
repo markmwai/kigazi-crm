@@ -383,6 +383,9 @@ export const englishCrmMessages = {
         "If you're a registered user, you should receive a password recovery email shortly.",
       sign_in_failed: "Failed to log in.",
       sign_in_google_workspace: "Sign in with Google Workplace",
+      sign_in_central: "Log in via Kigazi",
+      sign_in_hint: "Authentication is handled by Kigazi.",
+      create_account_central: "Create a Kigazi account",
       signup: {
         create_account: "Create account",
         create_first_user:
@@ -390,7 +393,7 @@ export const englishCrmMessages = {
         creating: "Creating...",
         initial_user_created: "Initial user successfully created",
       },
-      welcome_title: "Welcome to Atomic CRM",
+      welcome_title: "Welcome to Kigazi",
     },
     common: {
       account_manager: "Account manager",
@@ -436,7 +439,7 @@ export const englishCrmMessages = {
       latest_notes: "My Latest Notes",
       latest_notes_added_ago: "added %{timeAgo}",
       stepper: {
-        install: "Install Atomic CRM",
+        install: "Install Kigazi",
         progress: "%{step}/3 done",
         whats_next: "What's next?",
       },
@@ -547,6 +550,11 @@ export const englishCrmMessages = {
       app_title: "App Title",
       sections: {
         branding: "Branding",
+        team: "Team",
+      },
+      team: {
+        help: "Invite teammates and manage their roles in your Kigazi organization.",
+        manage: "Manage Team",
       },
       validation: {
         duplicate: "Duplicate %{display_name}: %{items}",
@@ -582,7 +590,7 @@ export const englishCrmMessages = {
         "Other addresses you send emails from. Leave one empty to remove it.",
       inbound: {
         description:
-          "You can start sending emails to your server's inbound email address, e.g. by adding it to the %{field} field. Atomic CRM will process the emails and add notes to the corresponding contacts.",
+          "You can start sending emails to your server's inbound email address, e.g. by adding it to the %{field} field. Kigazi will process the emails and add notes to the corresponding contacts.",
         title: "Inbound email",
       },
       mcp: {

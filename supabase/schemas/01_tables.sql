@@ -97,7 +97,7 @@ create table public.sales (
     last_name text not null default 'Pending'::text,
     email extensions.citext not null,
     administrator boolean not null,
-    user_id uuid not null,
+    user_id text not null,
     avatar jsonb,
     disabled boolean not null default false,
     secondary_emails jsonb not null default '[]'::jsonb,
@@ -168,9 +168,6 @@ alter table public.deal_notes
 
 alter table public.deal_notes
     add constraint "dealNotes_sales_id_fkey" foreign key (sales_id) references public.sales(id);
-
-alter table public.sales
-    add constraint sales_user_id_fkey foreign key (user_id) references auth.users(id);
 
 alter table public.tasks
     add constraint tasks_contact_id_fkey foreign key (contact_id) references public.contacts(id) on update cascade on delete cascade;

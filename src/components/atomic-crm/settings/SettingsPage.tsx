@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { RotateCcw, Save } from "lucide-react";
+import { RotateCcw, Save, Users } from "lucide-react";
 import type { RaRecord } from "ra-core";
 import {
   EditBase,
@@ -21,6 +21,7 @@ import { SimpleFormIterator } from "@/components/admin/simple-form-iterator";
 import { TextInput } from "@/components/admin/text-input";
 
 import ImageEditorField from "../misc/ImageEditorField";
+import { getClerk } from "../auth/clerk";
 import {
   useConfigurationContext,
   useConfigurationUpdater,
@@ -34,6 +35,11 @@ const SECTIONS = [
     id: "branding",
     label: "crm.settings.sections.branding",
     fallback: "Branding",
+  },
+  {
+    id: "team",
+    label: "crm.settings.sections.team",
+    fallback: "Team",
   },
   {
     id: "companies",
@@ -304,6 +310,25 @@ const SettingsFormFields = () => {
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Team: Clerk owns invitations and roles (OrganizationProfile) */}
+        <Card id="team">
+          <CardContent className="space-y-4">
+            <h2 className="text-xl font-semibold text-muted-foreground">
+              {translate("crm.settings.sections.team")}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {translate("crm.settings.team.help")}
+            </p>
+            <Button
+              type="button"
+              onClick={() => getClerk()?.openOrganizationProfile()}
+            >
+              <Users className="h-4 w-4 mr-1" />
+              {translate("crm.settings.team.manage")}
+            </Button>
           </CardContent>
         </Card>
 

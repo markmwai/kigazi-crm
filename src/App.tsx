@@ -1,36 +1,42 @@
+import { ClerkLoaded, ClerkProvider } from "@clerk/clerk-react";
+
 import { CRM } from "@/components/atomic-crm/root/CRM";
+import { config } from "@/components/atomic-crm/root/config";
+import {
+  KIGAZI_SIGN_IN_URL,
+  KIGAZI_SIGN_UP_URL,
+  getAuthRedirectUrl,
+} from "@/components/atomic-crm/auth/clerk";
 
 /**
  * Application entry point
  *
- * Customize Atomic CRM by passing props to the CRM component:
- *  - companySectors
- *  - darkTheme
- *  - dealCategories
- *  - dealPipelineStatuses
- *  - dealStages
- *  - lightTheme
- *  - darkModeLogo / lightModeLogo
- *  - noteStatuses
- *  - taskTypes
- *  - title
- * ... as well as all the props accepted by shadcn-admin-kit's <Admin> component.
+ * Authentication is centralised on kigazi.com: Clerk issues the session here too
+ * (satellite of the same Clerk instance) and Supabase trusts its tokens. Without
+ * a publishable key the app renders unauthenticated, which is only useful for
+ * the FakeRest demo (demo/App.tsx has its own entry point).
  *
- * Logos must be an imported asset, an absolute URL, or a data URI — never a
- * route-relative path like "./img/logo.png", which breaks on nested routes.
- *
- * @example
- * import logoDark from "./logo-dark.svg";
- * import logoLight from "./logo-light.svg";
- *
- * const App = () => (
- *    <CRM
- *       darkModeLogo={logoDark}
- *       lightModeLogo={logoLight}
- *       title="Acme CRM"
- *    />
- * );
+ * Branding and CRM domain configuration live in
+ * src/components/atomic-crm/root/defaultConfiguration.ts.
  */
-const App = () => <CRM />;
+const publishableKey = config.clerkPublishableKey;
+
+const App = () =>
+  publishableKey ? (
+    <ClerkProvider
+      publishableKey={publishableKey}
+      signInUrl={KIGAZI_SIGN_IN_URL}
+      signUpUrl={KIGAZI_SIGN_UP_URL}
+      signInFallbackRedirectUrl={getAuthRedirectUrl()}
+      signUpFallbackRedirectUrl={getAuthRedirectUrl()}
+      afterSignOutUrl={KIGAZI_SIGN_IN_URL}
+    >
+      <ClerkLoaded>
+        <CRM />
+      </ClerkLoaded>
+    </ClerkProvider>
+  ) : (
+    <CRM />
+  );
 
 export default App;

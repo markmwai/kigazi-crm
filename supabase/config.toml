@@ -84,6 +84,15 @@ enable_signup = true
 # Development signing keys
 signing_keys_path = "./signing_keys.json"
 
+# Clerk issues the JWTs for humans; Supabase only verifies them (third-party
+# auth). Enable this once the Clerk instance exists: set `domain` to its Frontend
+# API domain (e.g. "kigazi.clerk.accounts.dev") and flip enabled to true. The CLI
+# fetches <domain>/.well-known/openid-configuration on start, so the domain must
+# be reachable. Clerk session tokens must also carry `role: authenticated`.
+[auth.third_party.clerk]
+enabled = false
+domain = "your-app.clerk.accounts.dev"
+
 [auth.oauth_server]
 enabled = true
 authorization_url_path = "/#/oauth/consent"
@@ -171,4 +180,7 @@ verify_jwt = false
 [functions.users]
 verify_jwt = false
 [functions.mcp]
+verify_jwt = false
+# Clerk signs the request with Svix; index.ts verifies that signature itself.
+[functions.clerk-webhook]
 verify_jwt = false

@@ -388,6 +388,9 @@ export const frenchCrmMessages = {
         "Si vous êtes un utilisateur enregistré, vous devriez recevoir prochainement un e-mail de récupération de mot de passe.",
       sign_in_failed: "Échec de la connexion.",
       sign_in_google_workspace: "Connectez-vous avec Google Workplace",
+      sign_in_central: "Se connecter via Kigazi",
+      sign_in_hint: "L'authentification est gérée par Kigazi.",
+      create_account_central: "Créer un compte Kigazi",
       signup: {
         create_account: "Créer un compte",
         create_first_user:
@@ -395,7 +398,7 @@ export const frenchCrmMessages = {
         creating: "Création...",
         initial_user_created: "Utilisateur initial créé avec succès",
       },
-      welcome_title: "Bienvenue sur Atomic CRM",
+      welcome_title: "Bienvenue sur Kigazi",
     },
     common: {
       account_manager: "Responsable de compte",
@@ -442,7 +445,7 @@ export const frenchCrmMessages = {
       latest_notes: "Mes dernières notes",
       latest_notes_added_ago: "ajouté %{timeAgo}",
       stepper: {
-        install: "Installer Atomic CRM",
+        install: "Installer Kigazi",
         progress: "%{step}/3 terminé",
         whats_next: "Et ensuite ?",
       },
@@ -556,6 +559,11 @@ export const frenchCrmMessages = {
       app_title: "Titre de l'application",
       sections: {
         branding: "Image de marque",
+        team: "Équipe",
+      },
+      team: {
+        help: "Invitez vos collègues et gérez leurs rôles dans votre organisation Kigazi.",
+        manage: "Gérer l'équipe",
       },
       validation: {
         duplicate: "%{display_name} en double : %{items}",
@@ -592,7 +600,7 @@ export const frenchCrmMessages = {
         "Autres adresses depuis lesquelles vous envoyez des e-mails. Laissez-en une vide pour la supprimer.",
       inbound: {
         description:
-          "Vous pouvez commencer à envoyer des e-mails vers l'adresse de réception de votre serveur, par exemple en l'ajoutant au champ %{field}. Atomic CRM traitera les e-mails et ajoutera des notes aux contacts correspondants.",
+          "Vous pouvez commencer à envoyer des e-mails vers l'adresse de réception de votre serveur, par exemple en l'ajoutant au champ %{field}. Kigazi traitera les e-mails et ajoutera des notes aux contacts correspondants.",
         title: "E-mail entrant",
       },
       mcp: {

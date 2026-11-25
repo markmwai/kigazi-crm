@@ -15,6 +15,7 @@ type Env = Record<string, string | undefined>;
 const ENV_KEYS = {
   supabaseUrl: "VITE_SUPABASE_URL",
   supabasePublishableKey: "VITE_SB_PUBLISHABLE_KEY",
+  clerkPublishableKey: "VITE_CLERK_PUBLISHABLE_KEY",
   isDemo: "VITE_IS_DEMO",
   inboundEmail: "VITE_INBOUND_EMAIL",
   attachmentsBucket: "VITE_ATTACHMENTS_BUCKET",

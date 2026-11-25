@@ -5,14 +5,12 @@ import type {
   LayoutComponent,
 } from "ra-core";
 import { CustomRoutes, localStorageStore, Resource } from "ra-core";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { Route } from "react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { Admin } from "@/components/admin/admin";
-import { ForgotPasswordPage } from "@/components/supabase/forgot-password-page";
-import { SetPasswordPage } from "@/components/supabase/set-password-page";
 import { OAuthConsentPage } from "@/components/supabase/oauth-consent-page";
 
 import companies from "../companies";
@@ -22,8 +20,6 @@ import { MobileDashboard } from "../dashboard/MobileDashboard";
 import deals from "../deals";
 import { Layout } from "../layout/Layout";
 import { MobileLayout } from "../layout/MobileLayout";
-import { SignupPage } from "../login/SignupPage";
-import { ConfirmationRequired } from "../login/ConfirmationRequired";
 import { ImportPage } from "../misc/ImportPage";
 import { ChangelogPage } from "../misc/ChangelogPage";
 import {
@@ -52,7 +48,7 @@ import {
   defaultTitle,
 } from "./defaultConfiguration";
 import { i18nProvider as defaulti18nProvider } from "../providers/commons/i18nProvider";
-import { StartPage } from "../login/StartPage.tsx";
+import { LoginPage } from "../login/LoginPage";
 import { useIsMobile } from "@/hooks/use-mobile.ts";
 import { MobileTasksList } from "../tasks/MobileTasksList.tsx";
 import { ContactListMobile } from "../contacts/ContactList.tsx";
@@ -168,61 +164,15 @@ export const CRM = ({
 
   const isMobile = useIsMobile();
 
-  // on login, pre-fetch the configuration to avoid a flickering
-  // when accessing the app for the first time
-  const wrappedAuthProvider = useMemo<AuthProvider>(
-    () => ({
-      ...authProvider,
-      login: async (params: any) => {
-        const result = await authProvider.login(params);
-        try {
-          const config = await dataProvider.getConfiguration();
-          if (Object.keys(config).length > 0) {
-            store.setItem(CONFIGURATION_STORE_KEY, config);
-          }
-        } catch {
-          // Non-critical: config will load via useConfigurationLoader
-        }
-        return result;
-      },
-      handleCallback: async (params: any) => {
-        if (!authProvider.handleCallback) {
-          throw new Error(
-            "handleCallback is not implemented in the authProvider",
-          );
-        }
-        const result = await authProvider.handleCallback(params);
-        try {
-          const config = await dataProvider.getConfiguration();
-          if (Object.keys(config).length > 0) {
-            store.setItem(CONFIGURATION_STORE_KEY, config);
-          }
-        } catch {
-          // Non-critical: config will load via useConfigurationLoader
-        }
-        return result;
-      },
-      logout: async (params: any) => {
-        try {
-          store.removeItem(CONFIGURATION_STORE_KEY);
-        } catch {
-          // Ignore
-        }
-        return authProvider.logout(params);
-      },
-    }),
-    [authProvider, dataProvider, store],
-  );
-
   const ResponsiveAdmin = isMobile ? MobileAdmin : DesktopAdmin;
 
   return (
     <ResponsiveAdmin
       dataProvider={dataProvider}
-      authProvider={wrappedAuthProvider}
+      authProvider={authProvider}
       i18nProvider={i18nProvider}
       store={store}
-      loginPage={StartPage}
+      loginPage={LoginPage}
       requireAuth
       disableTelemetry
       {...rest}
@@ -243,16 +193,6 @@ const DesktopAdmin = (
       {...props}
     >
       <CustomRoutes noLayout>
-        <Route path={SignupPage.path} element={<SignupPage />} />
-        <Route
-          path={ConfirmationRequired.path}
-          element={<ConfirmationRequired />}
-        />
-        <Route path={SetPasswordPage.path} element={<SetPasswordPage />} />
-        <Route
-          path={ForgotPasswordPage.path}
-          element={<ForgotPasswordPage />}
-        />
         <Route path={OAuthConsentPage.path} element={<OAuthConsentPage />} />
       </CustomRoutes>
 
@@ -318,16 +258,6 @@ const MobileAdmin = (
         {...props}
       >
         <CustomRoutes noLayout>
-          <Route path={SignupPage.path} element={<SignupPage />} />
-          <Route
-            path={ConfirmationRequired.path}
-            element={<ConfirmationRequired />}
-          />
-          <Route path={SetPasswordPage.path} element={<SetPasswordPage />} />
-          <Route
-            path={ForgotPasswordPage.path}
-            element={<ForgotPasswordPage />}
-          />
           <Route path={OAuthConsentPage.path} element={<OAuthConsentPage />} />
         </CustomRoutes>
         <CustomRoutes>

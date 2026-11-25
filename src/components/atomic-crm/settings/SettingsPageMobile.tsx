@@ -19,7 +19,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Check, Copy, LogOut, Moon, Smartphone, Sun } from "lucide-react";
+import {
+  Check,
+  Copy,
+  LogOut,
+  Moon,
+  Smartphone,
+  Sun,
+  Users,
+} from "lucide-react";
 import {
   email,
   Form,
@@ -44,6 +52,7 @@ import {
 
 import { MobileContent } from "../layout/MobileContent";
 import MobileHeader from "../layout/MobileHeader";
+import { getClerk } from "../auth/clerk";
 import { ChangelogPage } from "../misc/ChangelogPage";
 import ImageEditorField from "../misc/ImageEditorField";
 import type { CrmDataProvider } from "../providers/types";
@@ -118,6 +127,14 @@ export const SettingsPageMobile = () => {
           </div>
 
           <div className="mt-auto pt-6 space-y-3">
+            <Button
+              variant="outline"
+              className="w-full h-12 text-base"
+              onClick={() => getClerk()?.openOrganizationProfile()}
+            >
+              <Users className="size-5 mr-3" />
+              {translate("crm.settings.team.manage")}
+            </Button>
             <ChangePasswordButton />
             <Button
               variant="destructive"
@@ -549,7 +566,7 @@ const InboundEmailSection = () => {
       <SectionLabel>{translate("crm.profile.inbound.title")}</SectionLabel>
       <p className="text-sm text-muted-foreground mb-2 px-1">
         {translate("crm.profile.inbound.description", {
-          _: "You can start sending emails to your server's inbound email address, e.g. by adding it to the Cc: field. Atomic CRM will process the emails and add notes to the corresponding contacts.",
+          _: "You can start sending emails to your server's inbound email address, e.g. by adding it to the Cc: field. Kigazi will process the emails and add notes to the corresponding contacts.",
           field: "Cc:",
         })}
       </p>

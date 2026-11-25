@@ -8,6 +8,7 @@
 export interface RuntimeConfig {
   supabaseUrl?: string;
   supabasePublishableKey?: string;
+  clerkPublishableKey?: string;
   isDemo?: boolean;
   inboundEmail?: string;
   attachmentsBucket?: string;

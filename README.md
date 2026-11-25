@@ -1,24 +1,23 @@
-# Atomic CRM
+# Kigazi CRM
 
-A full-featured CRM built with React, shadcn-admin-kit, and Supabase.
-
-<https://github.com/user-attachments/assets/0d7554b5-49ef-41c6-bcc9-a76214fc5c99>
-
-Atomic CRM is free and open-source. You can test it online at <https://marmelab.com/atomic-crm-demo>.
+The Kigazi ecosystem CRM: contacts, companies, deals and tasks, built with React,
+shadcn-admin-kit, and Supabase. Sign-in is centralized on
+[kigazi.com](https://kigazi.com) through Clerk, so one account and one
+organization are shared with the rest of the Kigazi apps.
 
 ## Features
 
 - 📇 **Organize Contacts**: Keep all your contacts in one easily accessible place.
 - ⏰ **Create Tasks & Set Reminders**: Never miss a follow-up or deadline.
 - 📝 **Take Notes**: Capture important details and insights effortlessly.
-- ✉️ **Capture Emails**: CC Atomic CRM to automatically save communications as notes.
+- ✉️ **Capture Emails**: CC Kigazi CRM to automatically save communications as notes.
 - 📊 **Manage Deals**: Visualize and track your sales pipeline in a Kanban board.
 - 🔄 **Import & Export Data**: Easily transfer contacts in and out of the system.
-- 🔐 **Control Access**: Log in with Google, Azure, Keycloak, and Auth0.
+- 🔐 **Central Login**: Sign in through the Kigazi hub (Clerk) and share one organization across the Kigazi apps.
 - 📜 **Track Activity History**: View all interactions in aggregated activity logs.
 - 🔗 **Integrate via API**: Connect seamlessly with other systems using our API.
 - 🛠️ **Customize Everything**: Add custom fields, change the theme, and replace any component to fit your needs.
-- 📦 **Stay Up To Date**: Pull the latest component updates into your fork via the Atomic CRM shadcn registry.
+- 📦 **Stay Up To Date**: Pull the latest component updates into your fork via the upstream shadcn registry.
 
 ## Installation
 
@@ -28,16 +27,16 @@ To run this project locally, you will need the following tools installed on your
 - Node 24 LTS
 - Docker (required by Supabase)
 
-Fork the [`marmelab/atomic-crm`](https://github.com/marmelab/atomic-crm) repository to your user/organization, then clone it locally:
+Clone this repository:
 
 ```sh
-git clone https://github.com/[username]/atomic-crm.git
+git clone https://github.com/[username]/kigazi-crm.git
 ```
 
 Install dependencies:
 
 ```sh
-cd atomic-crm
+cd kigazi-crm
 make install
 ```
 
@@ -51,7 +50,7 @@ make start
 
 This will start the Vite dev server for the frontend, the local Supabase instance for the API, and a Postgres database (thanks to Docker).
 
-You can then access the app via [http://localhost:5173/](http://localhost:5173/). You will be prompted to create the first user.
+You can then access the app via [http://localhost:5173/](http://localhost:5173/). Sign-in happens on the Kigazi hub, so set `VITE_CLERK_PUBLISHABLE_KEY` in `.env.development` (it is rendered into `config.js` at runtime) and enable the Clerk third-party auth block in `supabase/config.toml`.
 
 If you need debug the backend, you can access the following services:
 
@@ -62,7 +61,7 @@ If you need debug the backend, you can access the following services:
 
 ## Documentation
 
-The user and developer documentation for this project is available [in the `doc/` directory](./doc/). You can also read it online at [https://marmelab.com/atomic-crm/doc/](https://marmelab.com/atomic-crm/doc/).
+The user and developer documentation for this project is available [in the `doc/` directory](./doc/).
 
 ## Testing Changes
 

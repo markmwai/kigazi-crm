@@ -1,30 +1,15 @@
 import type { AuthProvider } from "ra-core";
-import { supabaseAuthProvider } from "ra-supabase-core";
 
+import { getClerk, getSignInUrl } from "../../auth/clerk";
 import { canAccess } from "../commons/canAccess";
 import { getSupabaseClient } from "./supabase";
 
-const getBaseAuthProvider = () =>
-  supabaseAuthProvider(getSupabaseClient(), {
-    getIdentity: async () => {
-      const sale = await getSale();
+// Clerk owns the session; Supabase only stores the CRM records. Identity comes
+// from the Clerk user id stored in sales.user_id (see current_user_id()).
 
-      if (sale == null) {
-        throw new Error();
-      }
-
-      return {
-        id: sale.id,
-        fullName: `${sale.first_name} ${sale.last_name}`,
-        avatar: sale.avatar?.src,
-      };
-    },
-  });
-
-// To speed up checks, we cache the initialization state
-// and the current sale in the local storage. They are cleared on logout.
+// To speed up checks, we cache the initialization state in the local storage.
+// It is cleared on logout.
 const IS_INITIALIZED_CACHE_KEY = "RaStore.auth.is_initialized";
-const CURRENT_SALE_CACHE_KEY = "RaStore.auth.current_sale";
 
 function getLocalStorage(): Storage | null {
   if (typeof window !== "undefined" && window.localStorage) {
@@ -52,127 +37,93 @@ export async function getIsInitialized() {
   return isInitialized;
 }
 
-const getSale = async () => {
-  const storage = getLocalStorage();
-  const cachedValue = storage?.getItem(CURRENT_SALE_CACHE_KEY);
-  if (cachedValue != null) {
-    return JSON.parse(cachedValue);
-  }
+type Sale = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  avatar?: { src?: string } | null;
+  administrator: boolean;
+};
 
-  const { data: dataSession, error: errorSession } =
-    await getSupabaseClient().auth.getSession();
+/** The sale row the Clerk user maps to. Created by the provisioning webhook. */
+const getSale = async (): Promise<Sale | undefined> => {
+  const userId = getClerk()?.user?.id;
+  if (!userId) return undefined;
 
-  // Shouldn't happen after login but just in case
-  if (dataSession?.session?.user == null || errorSession) {
-    return undefined;
-  }
-
-  const { data: dataSale, error: errorSale } = await getSupabaseClient()
+  const { data, error } = await getSupabaseClient()
     .from("sales")
     .select("id, first_name, last_name, avatar, administrator")
-    .match({ user_id: dataSession?.session?.user.id })
-    .single();
+    .eq("user_id", userId)
+    .maybeSingle<Sale>();
 
-  // Shouldn't happen either as all users are sales but just in case
-  if (dataSale == null || errorSale) {
+  if (error || data == null) {
     return undefined;
   }
-
-  storage?.setItem(CURRENT_SALE_CACHE_KEY, JSON.stringify(dataSale));
-  return dataSale;
+  return data;
 };
 
-function clearCache() {
-  const storage = getLocalStorage();
-  storage?.removeItem(IS_INITIALIZED_CACHE_KEY);
-  storage?.removeItem(CURRENT_SALE_CACHE_KEY);
-}
+export const getAuthProvider = (): AuthProvider => ({
+  login: async () => {
+    window.location.assign(getSignInUrl());
+  },
+  logout: async () => {
+    getLocalStorage()?.removeItem(IS_INITIALIZED_CACHE_KEY);
+    await getClerk()?.signOut();
+  },
+  checkAuth: async () => {
+    if (!getClerk()?.user) {
+      throw { redirectTo: "/login", message: false };
+    }
+  },
+  checkError: async (error) => {
+    const status = error?.status;
+    if (status === 401 || status === 403) {
+      throw error;
+    }
+  },
+  getIdentity: async () => {
+    const sale = await getSale();
+    if (sale) {
+      return {
+        id: sale.id,
+        fullName: `${sale.first_name} ${sale.last_name}`,
+        avatar: sale.avatar?.src,
+      };
+    }
 
-export const getAuthProvider = (): AuthProvider => {
-  const baseAuthProvider = getBaseAuthProvider();
-  return {
-    ...baseAuthProvider,
-    login: async (params) => {
-      if (params.ssoDomain) {
-        const { error } = await getSupabaseClient().auth.signInWithSSO({
-          domain: params.ssoDomain,
-        });
-        if (error) {
-          throw error;
-        }
-        return;
-      }
-      return baseAuthProvider.login(params);
-    },
-    logout: async () => {
-      clearCache();
-      // Preserve independent MCP OAuth and other browser sessions.
-      const { error } = await getSupabaseClient().auth.signOut({
-        scope: "local",
-      });
-      if (error) {
-        throw error;
-      }
-    },
-    checkAuth: async (params) => {
-      // Users are on the set-password page, nothing to do
-      if (
-        window.location.pathname === "/set-password" ||
-        window.location.hash.includes("#/set-password")
-      ) {
-        return;
-      }
-      // Users are on the forgot-password page, nothing to do
-      if (
-        window.location.pathname === "/forgot-password" ||
-        window.location.hash.includes("#/forgot-password")
-      ) {
-        return;
-      }
-      // Users are on the sign-up page, nothing to do
-      if (
-        window.location.pathname === "/sign-up" ||
-        window.location.hash.includes("#/sign-up")
-      ) {
-        return;
-      }
-
-      const isInitialized = await getIsInitialized();
-
-      if (!isInitialized) {
-        await getSupabaseClient().auth.signOut({ scope: "local" });
-        throw {
-          redirectTo: "/sign-up",
-          message: false,
-        };
-      }
-
-      return baseAuthProvider.checkAuth(params);
-    },
-    canAccess: async (params) => {
-      const isInitialized = await getIsInitialized();
-      if (!isInitialized) return false;
-
-      // Get the current user
-      const sale = await getSale();
-      if (sale == null) return false;
-
-      // Compute access rights from the sale role
-      const role = sale.administrator ? "admin" : "user";
-      return canAccess(role, params);
-    },
-    getAuthorizationDetails(authorizationId: string) {
-      return getSupabaseClient().auth.oauth.getAuthorizationDetails(
-        authorizationId,
-      );
-    },
-    approveAuthorization(authorizationId: string) {
-      return getSupabaseClient().auth.oauth.approveAuthorization(
-        authorizationId,
-      );
-    },
-    denyAuthorization(authorizationId: string) {
-      return getSupabaseClient().auth.oauth.denyAuthorization(authorizationId);
-    },
-  };
-};
+    // Until the provisioning webhook has created the sale row, fall back to
+    // Clerk so the app still renders.
+    const user = getClerk()?.user;
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+    return {
+      id: user.id,
+      fullName: user.fullName ?? user.primaryEmailAddress?.emailAddress ?? "",
+      avatar: user.imageUrl,
+    };
+  },
+  canAccess: async (params) => {
+    // Admins are driven by the Clerk organization role (decision #4), with the
+    // sales row kept as the fallback for native Supabase tokens (MCP).
+    const sale = await getSale();
+    const role =
+      getClerk()?.organization?.membership?.role === "org:admin" ||
+      sale?.administrator
+        ? "admin"
+        : "user";
+    return canAccess(role, params);
+  },
+  // MCP keeps using Supabase Auth as a second issuer (see the Phase 1 notes).
+  getAuthorizationDetails(authorizationId: string) {
+    return getSupabaseClient().auth.oauth.getAuthorizationDetails(
+      authorizationId,
+    );
+  },
+  approveAuthorization(authorizationId: string) {
+    return getSupabaseClient().auth.oauth.approveAuthorization(authorizationId);
+  },
+  denyAuthorization(authorizationId: string) {
+    return getSupabaseClient().auth.oauth.denyAuthorization(authorizationId);
+  },
+});
