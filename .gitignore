@@ -35,12 +35,14 @@ dist/
 dist-demo/
 /lib/
 .env
+# Holds the Clerk webhook signing secret: create it locally, never commit it.
+# See supabase/functions/.env.example for the expected variables.
+supabase/functions/.env
 *storybook.log
 
 # Shadcn Registry
 public/r/
 
-!supabase/functions/.env
 .claude/settings.local.json
 
 # Harness scratch (promotion lock, kept on purpose; worktrees cleaned at SessionEnd)
