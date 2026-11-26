@@ -9,6 +9,11 @@
 export const KIGAZI_SIGN_IN_URL = "https://kigazi.com/sign-in";
 export const KIGAZI_SIGN_UP_URL = "https://kigazi.com/sign-up";
 
+// Production is served from the root of crm.kigazi.com on Cloudflare Pages;
+// the dev server runs on localhost. `vite build` sets DEV to false.
+const PRODUCTION_URL = "https://crm.kigazi.com";
+const DEVELOPMENT_URL = "http://localhost:5173";
+
 /** Minimal shape of the instance ClerkProvider publishes on window.Clerk. */
 export type ClerkInstance = {
   user?: {
@@ -33,7 +38,8 @@ declare global {
 export const getClerk = () => window.Clerk;
 
 /** Clerk sends the browser back here after the central sign-in. */
-export const getAuthRedirectUrl = () => window.location.origin;
+export const getAuthRedirectUrl = () =>
+  import.meta.env.DEV ? DEVELOPMENT_URL : PRODUCTION_URL;
 
 export const getSignInUrl = () =>
   `${KIGAZI_SIGN_IN_URL}?redirect_url=${encodeURIComponent(getAuthRedirectUrl())}`;

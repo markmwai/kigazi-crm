@@ -4,7 +4,7 @@ import path from "node:path";
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
-import createHtmlPlugin from "vite-plugin-simple-html";
+import { htmlEntry } from "./scripts/htmlEntry.ts";
 import { runtimeConfig } from "./scripts/renderRuntimeConfig.ts";
 
 // https://vitejs.dev/config/
@@ -21,14 +21,7 @@ export default defineConfig({
       open: process.env.NODE_ENV !== "CI",
       filename: "./dist/stats.html",
     }),
-    createHtmlPlugin({
-      minify: true,
-      inject: {
-        data: {
-          mainScript: `src/main.tsx`,
-        },
-      },
-    }),
+    htmlEntry("src/main.tsx"),
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
@@ -49,8 +42,13 @@ export default defineConfig({
       manifest: false, // Use existing manifest.json from public/
     }),
   ],
-  base: "./",
+  // Cloudflare Pages serves the site from the root of crm.kigazi.com. A
+  // relative base would resolve assets against the current path, so keep it
+  // absolute here (a sub-path deployment must pass --base=./ to vite build).
+  base: "/",
   build: {
+    // Must match the "Build output directory" of the Pages project.
+    outDir: "dist",
     rolldownOptions: {
       output: {
         keepNames: true,

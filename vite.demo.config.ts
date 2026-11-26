@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { visualizer } from "rollup-plugin-visualizer";
 import { defineConfig } from "vite";
-import createHtmlPlugin from "vite-plugin-simple-html";
+import { htmlEntry } from "./scripts/htmlEntry.ts";
 import { runtimeConfig } from "./scripts/renderRuntimeConfig.ts";
 
 // https://vitejs.dev/config/
@@ -22,14 +22,7 @@ export default defineConfig({
       open: process.env.NODE_ENV !== "CI",
       filename: "./dist/stats.html",
     }),
-    createHtmlPlugin({
-      minify: true,
-      inject: {
-        data: {
-          mainScript: `demo/main.tsx`,
-        },
-      },
-    }),
+    htmlEntry("demo/main.tsx"),
   ],
   base: "./",
   build: {
