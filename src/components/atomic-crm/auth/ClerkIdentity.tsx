@@ -1,10 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import {
-  useAuth,
-  useClerk,
-  useOrganization,
-  useUser,
-} from "@clerk/clerk-react";
+import { useAuth, useOrganization, useUser } from "@clerk/clerk-react";
 import {
   FALLBACK_APPS,
   enabledAppIds,
@@ -25,7 +20,6 @@ export function KigaziIdentityProvider({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
   const { organization, isLoaded: orgLoaded } = useOrganization();
-  const { signOut } = useClerk();
   const [apps, setApps] = useState<AppCatalogEntry[]>(FALLBACK_APPS);
 
   useEffect(() => {
@@ -52,11 +46,7 @@ export function KigaziIdentityProvider({ children }: { children: ReactNode }) {
 
   const value: KigaziIdentity = {
     apps,
-    organizationName: organization?.name ?? null,
     enabledAppIds: enabledAppIds(organization?.publicMetadata),
-    signOut: () => {
-      void signOut({ redirectUrl: "https://kigazi.com" });
-    },
   };
 
   return (

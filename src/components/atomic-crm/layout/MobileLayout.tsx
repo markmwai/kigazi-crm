@@ -26,8 +26,6 @@ export const MobileLayout = ({ children }: { children: ReactNode }) => {
             currentAppId="crm"
             apps={identity.apps}
             enabledAppIds={identity.enabledAppIds}
-            organizationName={identity.organizationName}
-            onSignOut={identity.signOut}
           />
         </div>
       )}

@@ -11,9 +11,6 @@ export interface AppSwitcherProps {
   apps: AppCatalogEntry[];
   /** Customer apps this organization can use. Missing metadata means "all". */
   enabledAppIds: string[];
-  organizationName?: string | null;
-  /** Host passes Clerk signOut({ redirectUrl: "https://kigazi.com" }). */
-  onSignOut: () => void;
 }
 
 const HOME_URL = "https://kigazi.com/home";
@@ -77,8 +74,6 @@ export function AppSwitcher({
   currentAppId,
   apps,
   enabledAppIds,
-  organizationName,
-  onSignOut,
 }: AppSwitcherProps) {
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -239,36 +234,6 @@ export function AppSwitcher({
             </a>
           );
         })}
-
-        <div className="my-1 h-px bg-border" role="separator" />
-
-        <a
-          role="menuitem"
-          tabIndex={-1}
-          href={HOME_URL}
-          className="flex w-full items-center justify-between gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
-          onClick={() => close()}
-        >
-          <span className="min-w-0 truncate">Switch agency</span>
-          {organizationName && (
-            <span className="max-w-[8rem] shrink-0 truncate text-[11px] text-muted-foreground">
-              {organizationName}
-            </span>
-          )}
-        </a>
-
-        <button
-          type="button"
-          role="menuitem"
-          tabIndex={-1}
-          className="flex w-full items-center justify-between gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
-          onClick={() => {
-            close();
-            onSignOut();
-          }}
-        >
-          <span className="min-w-0 truncate">Sign out</span>
-        </button>
       </div>
     </>
   );
