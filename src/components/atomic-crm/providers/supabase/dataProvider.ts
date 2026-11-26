@@ -1,5 +1,6 @@
 import { supabaseDataProvider } from "ra-supabase-core";
 import {
+  fetchUtils,
   HttpError,
   withLifecycleCallbacks,
   type DataProvider,
@@ -21,15 +22,34 @@ import type {
 import type { ConfigurationContextValue } from "../../root/ConfigurationContext";
 import { ATTACHMENTS_BUCKET } from "../commons/attachments";
 import { config } from "../../root/config";
+import { getClerk } from "../../auth/clerk";
 import { getIsInitialized } from "./authProvider";
 import { searchDealCategories } from "./searchDealCategories";
 import { getSupabaseClient } from "./supabase";
+
+/**
+ * ra-supabase-core's default HTTP client reads the Supabase session
+ * (supabaseClient.auth.getSession()), which throws when the client is built with
+ * the Clerk accessToken option. Send the Clerk token and the project API key
+ * instead; the PostgREST provider already passes the JSON body and Prefer headers.
+ */
+const httpClient = async (url: string, options: RequestInit = {}) => {
+  const token = await getClerk()?.session?.getToken();
+  const headers = new Headers(options.headers);
+  headers.set("Accept", "application/json");
+  headers.set("apikey", config.supabasePublishableKey!);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  return fetchUtils.fetchJson(url, { ...options, headers });
+};
 
 const getBaseDataProvider = () =>
   supabaseDataProvider({
     instanceUrl: config.supabaseUrl!,
     apiKey: config.supabasePublishableKey!,
     supabaseClient: getSupabaseClient(),
+    httpClient,
     sortOrder: "asc,desc.nullslast" as any,
   });
 
