@@ -12,6 +12,7 @@ import { AppSwitcher } from "./AppSwitcher";
 import { ImportPage } from "../misc/ImportPage";
 import { ChangelogPage } from "../misc/ChangelogPage";
 import { GlobalSearchButton } from "../search/GlobalSearchButton";
+import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 const Header = () => {
   const { darkModeLogo, lightModeLogo, title } = useConfigurationContext();
@@ -62,6 +63,7 @@ const Header = () => {
                     enabledAppIds={identity.enabledAppIds}
                   />
                 )}
+                <WorkspaceSwitcher />
               </div>
               <div>
                 <nav className="flex">

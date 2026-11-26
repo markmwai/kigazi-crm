@@ -31,6 +31,21 @@ const App = () =>
       signInFallbackRedirectUrl={getAuthRedirectUrl()}
       signUpFallbackRedirectUrl={getAuthRedirectUrl()}
       afterSignOutUrl={KIGAZI_SIGN_IN_URL}
+      appearance={{
+        variables: {
+          fontFamily: "var(--font-sans)",
+          fontSize: "0.9375rem",
+          borderRadius: "var(--radius)",
+          colorPrimary: "var(--primary)",
+          colorBackground: "var(--card)",
+          colorText: "var(--card-foreground)",
+          colorTextSecondary: "var(--muted-foreground)",
+          colorInputBackground: "var(--background)",
+          colorInputText: "var(--foreground)",
+          colorNeutral: "var(--foreground)",
+          colorDanger: "var(--destructive)",
+        },
+      }}
     >
       <ClerkLoaded>
         <KigaziIdentityProvider>

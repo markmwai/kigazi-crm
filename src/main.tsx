@@ -33,7 +33,7 @@ const missingConfig = requiredConfig
 if (missingConfig.length > 0) {
   const container = document.createElement("div");
   container.style.cssText =
-    "max-width: 40rem; margin: 15vh auto; padding: 0 1.5rem; font: 16px/1.5 system-ui, sans-serif; color: #1c1917;";
+    "max-width: 40rem; margin: 15vh auto; padding: 0 1.5rem; font-family: var(--font-sans); font-size: 16px; line-height: 1.5; color: var(--foreground);";
   const title = document.createElement("h1");
   title.style.cssText = "font-size: 1.25rem; margin: 0 0 0.75rem;";
   title.textContent = "Kigazi CRM is not configured";

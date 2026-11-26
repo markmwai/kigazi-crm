@@ -137,6 +137,20 @@
           transform: rotate(360deg);
         }
       }
+
+      /* Follow the OS theme while the app boots, to avoid a white flash. */
+      @media (prefers-color-scheme: dark) {
+        .loader-container {
+          background-color: #131a24;
+        }
+        .loader {
+          color: #5eead4;
+        }
+        .loader:before,
+        .loader:after {
+          background: #131a24;
+        }
+      }
     </style>
   </head>
   <body>

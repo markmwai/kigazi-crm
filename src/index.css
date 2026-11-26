@@ -1,12 +1,16 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/plus-jakarta-sans";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    "Plus Jakarta Sans Variable", "Geist Variable", ui-sans-serif, system-ui,
+    sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -45,6 +49,7 @@
 }
 
 :root {
+  color-scheme: light;
   --radius: 0.625rem;
   /* Kigazi: warm stone surfaces, teal brand, ink text.
      Brand teal is #0d9488; interactive primary uses its darker sibling
@@ -60,7 +65,7 @@
   --secondary: oklch(0.962 0.002 106.4);
   --secondary-foreground: oklch(0.216 0.006 56);
   --muted: oklch(0.962 0.002 106.4);
-  --muted-foreground: oklch(0.53 0.004 56);
+  --muted-foreground: oklch(0.5 0.004 56);
   --accent: oklch(0.95 0.025 186);
   --accent-foreground: oklch(0.35 0.06 186);
   --destructive: oklch(0.577 0.245 27.325);
@@ -93,6 +98,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   /* Kigazi: dark ink surfaces, brighter teal for contrast on ink. */
   --background: oklch(0.18 0.012 255);
   --foreground: oklch(0.96 0.004 255);
@@ -186,10 +192,16 @@ input[type="time"] {
   body {
     @apply bg-background text-foreground font-sans;
   }
-}
-
-body {
-  font-family: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  /* Plus Jakarta carries the display voice; Geist handles UI text. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
 }
 
 /* The mobile pull-to-refresh (see layout/PullToRefresh.tsx) owns the overscroll
