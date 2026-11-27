@@ -1,0 +1,30 @@
+[
+  {
+    "id": "home",
+    "name": "Kigazi Home",
+    "url": "https://kigazi.com/home",
+    "icon": "home",
+    "description": "Your Kigazi workspace launcher."
+  },
+  {
+    "id": "chatbot",
+    "name": "AI Chatbot",
+    "url": "https://chatbot.kigazi.com",
+    "icon": "chatbot",
+    "description": "24/7 AI support grounded in your documents and website."
+  },
+  {
+    "id": "crm",
+    "name": "CRM",
+    "url": "https://crm.kigazi.com",
+    "icon": "crm",
+    "description": "Contacts, companies, deals, and pipeline in one place."
+  },
+  {
+    "id": "social",
+    "name": "Social Center",
+    "url": "https://app.kigazi.com",
+    "icon": "social",
+    "description": "Schedule posts, track analytics, and manage client brands."
+  }
+]

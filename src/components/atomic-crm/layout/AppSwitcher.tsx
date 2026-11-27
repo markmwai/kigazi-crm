@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { KeyboardEvent } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADD_TO_PLAN_URL, type AppCatalogEntry } from "@/lib/apps";
+import { readLastUsed, recordLastUsed } from "@/lib/last-used";
 
 export interface AppSwitcherProps {
   /** "home" when rendered on the ecosystem hub. */
@@ -70,17 +71,31 @@ function Check() {
   );
 }
 
+function LastBadge() {
+  return (
+    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      Last
+    </span>
+  );
+}
+
 export function AppSwitcher({
   currentAppId,
   apps,
   enabledAppIds,
 }: AppSwitcherProps) {
   const [open, setOpen] = useState(false);
+  const [lastUsedAppId, setLastUsedAppId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
+
+  const homeApp = apps.find((app) => app.id === "home");
+  const productApps = apps.filter((app) => app.id !== "home");
+  const homeUrl = homeApp?.url ?? HOME_URL;
+  const homeName = homeApp?.name ?? "Kigazi Home";
 
   const currentName =
     currentAppId === "home"
@@ -102,6 +117,11 @@ export function AppSwitcher({
     if (!open) return;
     const items = getItems();
     items[0]?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    setLastUsedAppId(readLastUsed()?.appId ?? null);
   }, [open]);
 
   useEffect(() => {
@@ -183,20 +203,35 @@ export function AppSwitcher({
             : "absolute left-0 top-[calc(100%+0.5rem)] z-50 w-72 origin-top-left overflow-hidden rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-lg"
         }
       >
-        <a
-          role="menuitem"
-          tabIndex={-1}
-          href={HOME_URL}
-          className="flex w-full items-center justify-between gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
-          onClick={() => close()}
-        >
-          <span className="min-w-0 truncate">Kigazi Home</span>
-          {currentAppId === "home" && <Check />}
-        </a>
+        {currentAppId === "home" ? (
+          <div
+            role="menuitem"
+            tabIndex={-1}
+            aria-current="true"
+            className="flex w-full cursor-default items-center justify-between gap-2.5 rounded-md bg-accent px-2.5 py-2 text-left text-sm font-medium text-foreground"
+          >
+            <span className="min-w-0 truncate">{homeName}</span>
+            <Check />
+          </div>
+        ) : (
+          <a
+            role="menuitem"
+            tabIndex={-1}
+            href={homeUrl}
+            className="flex w-full items-center justify-between gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+            onClick={() => {
+              recordLastUsed("home");
+              close();
+            }}
+          >
+            <span className="min-w-0 truncate">{homeName}</span>
+            {lastUsedAppId === "home" && <LastBadge />}
+          </a>
+        )}
 
         <div className="my-1 h-px bg-border" role="separator" />
 
-        {apps.map((app) => {
+        {productApps.map((app) => {
           const locked = !enabledAppIds.includes(app.id);
           if (locked) {
             return (
@@ -217,20 +252,34 @@ export function AppSwitcher({
             );
           }
           const current = app.id === currentAppId;
+          if (current) {
+            return (
+              <div
+                key={app.id}
+                role="menuitem"
+                tabIndex={-1}
+                aria-current="true"
+                className="flex w-full cursor-default items-center justify-between gap-2.5 rounded-md bg-accent px-2.5 py-2 text-left text-sm font-medium text-foreground"
+              >
+                <span className="min-w-0 truncate">{app.name}</span>
+                <Check />
+              </div>
+            );
+          }
           return (
             <a
               key={app.id}
               role="menuitem"
               tabIndex={-1}
               href={app.url}
-              aria-current={current ? "true" : undefined}
-              className={`flex w-full items-center justify-between gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none ${
-                current ? "bg-accent text-foreground" : "text-foreground"
-              }`}
-              onClick={() => close()}
+              className="flex w-full items-center justify-between gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+              onClick={() => {
+                recordLastUsed(app.id);
+                close();
+              }}
             >
               <span className="min-w-0 truncate">{app.name}</span>
-              {current && <Check />}
+              {lastUsedAppId === app.id && <LastBadge />}
             </a>
           );
         })}
