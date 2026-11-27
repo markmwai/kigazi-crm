@@ -35,6 +35,7 @@ export interface ContactsTable {
   company_id: number | null;
   sales_id: number | null;
   linkedin_url: string | null;
+  organization_id: string;
 }
 
 interface TasksTable {
@@ -45,6 +46,7 @@ interface TasksTable {
   due_date: Date;
   done_date: Date | null;
   sales_id: number | null;
+  organization_id: string;
 }
 
 interface ContactNotesTable {
@@ -55,6 +57,7 @@ interface ContactNotesTable {
   sales_id: number | null;
   status: string | null;
   attachments: unknown[] | null; // JSONB array
+  organization_id: string;
 }
 
 interface DealsTable {
@@ -72,6 +75,7 @@ interface DealsTable {
   expected_closing_date: Date | null;
   sales_id: number | null;
   index: number | null;
+  organization_id: string;
 }
 
 interface Database {

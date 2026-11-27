@@ -211,6 +211,7 @@ export const addNoteToContact = async ({
     .from("contact_notes")
     .insert({
       contact_id: contact.id,
+      organization_id: contact.organization_id,
       text: noteContent,
       sales_id: sales.id,
       attachments,

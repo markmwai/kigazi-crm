@@ -18,6 +18,10 @@ grant all on function public.current_user_id() to anon;
 grant all on function public.current_user_id() to authenticated;
 grant all on function public.current_user_id() to service_role;
 
+grant all on function public.current_organization_id() to anon;
+grant all on function public.current_organization_id() to authenticated;
+grant all on function public.current_organization_id() to service_role;
+
 grant all on function public.get_avatar_for_email(text) to anon;
 grant all on function public.get_avatar_for_email(text) to authenticated;
 grant all on function public.get_avatar_for_email(text) to service_role;
@@ -68,6 +72,14 @@ grant all on function public.merge_contacts(bigint, bigint) to service_role;
 grant all on function public.set_sales_id_default() to anon;
 grant all on function public.set_sales_id_default() to authenticated;
 grant all on function public.set_sales_id_default() to service_role;
+
+grant all on function public.validate_contact_tag_organizations() to anon;
+grant all on function public.validate_contact_tag_organizations() to authenticated;
+grant all on function public.validate_contact_tag_organizations() to service_role;
+
+grant all on function public.validate_deal_contact_organizations() to anon;
+grant all on function public.validate_deal_contact_organizations() to authenticated;
+grant all on function public.validate_deal_contact_organizations() to service_role;
 
 -- Table grants
 grant all on table public.companies to anon;

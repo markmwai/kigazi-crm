@@ -426,6 +426,62 @@ const lifeCycleCallbacks: ResourceCallbacks[] = [
   },
 ];
 
+// Tenant-owned resources: the client filters and stamps organization_id so the
+// intent is explicit, but RLS on the tables is what actually enforces isolation.
+const TENANT_RESOURCES = new Set([
+  "activity_log",
+  "companies",
+  "contact_notes",
+  "contacts",
+  "deal_notes",
+  "deals",
+  "tags",
+  "tasks",
+]);
+
+const currentOrganizationId = () => getClerk()?.organization?.id;
+
+const scopeFilter = (resource: string, filter: any) => {
+  const organizationId = currentOrganizationId();
+  if (!organizationId || !TENANT_RESOURCES.has(resource)) return filter;
+  return { ...filter, organization_id: organizationId };
+};
+
+const scopeData = (resource: string, data: any) => {
+  const organizationId = currentOrganizationId();
+  if (!organizationId || !TENANT_RESOURCES.has(resource)) return data;
+  return { ...data, organization_id: organizationId };
+};
+
+const withOrganization = (provider: CrmDataProvider): CrmDataProvider => ({
+  ...provider,
+  getList: (resource, params) =>
+    provider.getList(resource, {
+      ...params,
+      filter: scopeFilter(resource, params.filter),
+    }),
+  getManyReference: (resource, params) =>
+    provider.getManyReference(resource, {
+      ...params,
+      filter: scopeFilter(resource, params.filter),
+    }),
+  create: (resource, params) =>
+    provider.create(resource, {
+      ...params,
+      data: scopeData(resource, params.data),
+    }),
+  update: (resource, params) =>
+    provider.update(resource, {
+      ...params,
+      data: scopeData(resource, params.data),
+    }),
+  updateMany: (resource, params) =>
+    provider.updateMany(resource, {
+      ...params,
+      data: scopeData(resource, params.data),
+    }),
+});
+
 export const getDataProvider = () => {
   if (!window._atomicCrmConfig) {
     throw new Error(
@@ -442,10 +498,12 @@ export const getDataProvider = () => {
       "Please set the VITE_SB_PUBLISHABLE_KEY environment variable (or supabasePublishableKey in config.js)",
     );
   }
-  return withLifecycleCallbacks(
-    getDataProviderWithCustomMethods(),
-    lifeCycleCallbacks,
-  ) as CrmDataProvider;
+  return withOrganization(
+    withLifecycleCallbacks(
+      getDataProviderWithCustomMethods(),
+      lifeCycleCallbacks,
+    ) as CrmDataProvider,
+  );
 };
 
 const applyFullTextSearch = (columns: string[]) => (params: GetListParams) => {
@@ -515,7 +573,9 @@ const uploadToBucket = async (fi: RAFile) => {
   const fileParts = file.name.split(".");
   const fileExt = fileParts.length > 1 ? `.${file.name.split(".").pop()}` : "";
   const fileName = `${Math.random()}${fileExt}`;
-  const filePath = `${fileName}`;
+  // Organization-scoped path: storage RLS only exposes the caller's prefix.
+  const organizationId = getClerk()?.organization?.id;
+  const filePath = organizationId ? `${organizationId}/${fileName}` : fileName;
   const { error: uploadError } = await getSupabaseClient()
     .storage.from(ATTACHMENTS_BUCKET)
     .upload(filePath, dataContent);

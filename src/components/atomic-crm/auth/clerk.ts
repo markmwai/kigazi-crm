@@ -23,7 +23,10 @@ export type ClerkInstance = {
     imageUrl?: string;
   } | null;
   session?: { getToken: () => Promise<string | null> } | null;
-  organization?: { membership?: { role: string } | null } | null;
+  organization?: {
+    id: string;
+    membership?: { role: string } | null;
+  } | null;
   signOut: () => Promise<void>;
   openOrganizationProfile: (props?: Record<string, unknown>) => void;
 };

@@ -10,6 +10,16 @@ const SUPABASE_JWT_KEYS = jose.createRemoteJWKSet(
   new URL(Deno.env.get("SUPABASE_URL")! + "/auth/v1/.well-known/jwks.json"),
 );
 
+// Clerk issues the human session tokens. Set CLERK_JWT_ISSUER (e.g.
+// https://clerk.kigazi.com) or Clerk tokens are rejected.
+const CLERK_JWT_ISSUER = Deno.env.get("CLERK_JWT_ISSUER")?.replace(/\/$/, "");
+
+const CLERK_JWT_KEYS = CLERK_JWT_ISSUER
+  ? jose.createRemoteJWKSet(
+      new URL(`${CLERK_JWT_ISSUER}/.well-known/jwks.json`),
+    )
+  : null;
+
 function getAuthToken(req: Request) {
   const authHeader = req.headers.get("authorization");
   if (!authHeader) {
@@ -28,6 +38,38 @@ function verifySupabaseJWT(jwt: string) {
     issuer: SUPABASE_JWT_ISSUER,
   });
 }
+
+export type CallerIdentity = {
+  userId: string;
+  /** The active Clerk organization, from the token's "o".id claim. */
+  organizationId?: string;
+  claims: jose.JWTPayload;
+};
+
+/**
+ * Verifies a Supabase Auth or Clerk session token and returns the caller.
+ * Login-less providers (MCP) authenticate with Supabase tokens, which carry no
+ * organization; callers decide whether an organization is required.
+ */
+export const verifyCaller = async (req: Request): Promise<CallerIdentity> => {
+  const token = getAuthToken(req);
+  const isClerk =
+    CLERK_JWT_KEYS !== null && jose.decodeJwt(token).iss === CLERK_JWT_ISSUER;
+
+  const { payload } = isClerk
+    ? await jose.jwtVerify(token, CLERK_JWT_KEYS!, {
+        issuer: CLERK_JWT_ISSUER!,
+      })
+    : await verifySupabaseJWT(token);
+
+  if (!payload.sub) {
+    throw new Error("JWT has no subject");
+  }
+
+  const organizationId = (payload.o as { id?: string } | undefined)?.id;
+
+  return { userId: payload.sub, organizationId, claims: payload };
+};
 
 /**
  * Validates the Authorization header to ensure that a user is authenticated.

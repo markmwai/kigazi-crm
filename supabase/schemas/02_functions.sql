@@ -65,6 +65,18 @@ begin
 end;
 $$;
 
+CREATE OR REPLACE FUNCTION "public"."current_organization_id"() RETURNS "text"
+    LANGUAGE "plpgsql" STABLE
+    SET "search_path" TO ''
+    AS $$
+begin
+  -- Clerk nests the active organization under "o" in the session token.
+  -- Native Supabase tokens (MCP) carry no organization, so they see no
+  -- tenant-owned rows.
+  return nullif(auth.jwt() -> 'o' ->> 'id', '');
+end;
+$$;
+
 CREATE OR REPLACE FUNCTION "public"."get_avatar_for_email"("email" "text") RETURNS "text"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
@@ -216,7 +228,13 @@ CREATE OR REPLACE FUNCTION "public"."handle_contact_note_created_or_updated"() R
     SET "search_path" TO ''
     AS $$
 begin
-  update public.contacts set last_seen = new.date where contacts.id = new.contact_id and contacts.last_seen < new.date;
+  -- SECURITY DEFINER bypasses RLS: only touch a contact from the same
+  -- organization as the note, so a note cannot write to another tenant.
+  update public.contacts
+  set last_seen = new.date
+  where contacts.id = new.contact_id
+    and contacts.organization_id = new.organization_id
+    and contacts.last_seen < new.date;
   return new;
 end;
 $$;
@@ -497,6 +515,66 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."set_organization_id_default"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
+    AS $$
+BEGIN
+  -- Never overwrite a client-supplied value: the RLS WITH CHECK must see it and
+  -- reject a mismatched organization. Fill it only when missing.
+  IF coalesce(NEW.organization_id, '') = '' THEN
+    NEW.organization_id = coalesce(public.current_organization_id(), '');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."validate_contact_tag_organizations"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+begin
+  -- SECURITY DEFINER is required to *see* tags hidden by RLS; this function
+  -- only reads and rejects, it never writes. Every requested tag must exist in
+  -- the contact's organization.
+  if coalesce(cardinality(new.tags), 0) > 0
+     and (
+       select count(distinct tag_id) from unnest(new.tags) as tag_id
+     ) <> (
+       select count(*) from public.tags t
+       where t.id = any(new.tags) and t.organization_id = new.organization_id
+     )
+  then
+    raise exception 'Contact tags must belong to the contact organization'
+      using errcode = 'insufficient_privilege';
+  end if;
+  return new;
+end;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."validate_deal_contact_organizations"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+begin
+  -- SECURITY DEFINER is required to *see* contacts hidden by RLS; this function
+  -- only reads and rejects, it never writes. Every referenced contact must
+  -- exist in the deal's organization.
+  if coalesce(cardinality(new.contact_ids), 0) > 0
+     and (
+       select count(distinct contact_id) from unnest(new.contact_ids) as contact_id
+     ) <> (
+       select count(*) from public.contacts c
+       where c.id = any(new.contact_ids) and c.organization_id = new.organization_id
+     )
+  then
+    raise exception 'Deal contacts must belong to the deal organization'
+      using errcode = 'insufficient_privilege';
+  end if;
+  return new;
+end;
 $$;
 
 CREATE OR REPLACE FUNCTION "public"."set_sales_id_default"() RETURNS "trigger"

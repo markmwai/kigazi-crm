@@ -3,7 +3,11 @@ import { sql, type Selectable } from "https://esm.sh/kysely@0.27.2";
 import { db, type ContactsTable, CompiledQuery } from "../_shared/db.ts";
 import { corsHeaders, OptionsMiddleware } from "../_shared/cors.ts";
 import { createErrorResponse } from "../_shared/utils.ts";
-import { AuthMiddleware, UserMiddleware } from "../_shared/authentication.ts";
+import {
+  verifyCaller,
+  type CallerIdentity,
+} from "../_shared/authentication.ts";
+import { authorizeMerge } from "./organization.ts";
 
 type Contact = Selectable<ContactsTable>;
 
@@ -79,16 +83,16 @@ function mergeContactData(winner: Contact, loser: Contact) {
 async function mergeContacts(
   loserId: number,
   winnerId: number,
-  userId: string,
+  caller: CallerIdentity,
+  organizationId: string,
 ) {
   try {
     return await db.transaction().execute(async (trx) => {
-      // Enable RLS by switching to authenticated role and setting user context
+      // Run as the caller with their verified claims, so the RLS policies on
+      // every statement below also enforce the organization.
       await trx.executeQuery(CompiledQuery.raw("SET LOCAL ROLE authenticated"));
-      await trx.executeQuery(
-        CompiledQuery.raw(
-          `SELECT set_config('request.jwt.claim.sub', '${userId}', true)`,
-        ),
+      await sql`select set_config('request.jwt.claims', ${JSON.stringify(caller.claims)}, true)`.execute(
+        trx,
       );
 
       // 1. Fetch both contacts
@@ -97,11 +101,13 @@ async function mergeContacts(
           .selectFrom("contacts")
           .selectAll()
           .where("id", "=", winnerId)
+          .where("organization_id", "=", organizationId)
           .executeTakeFirstOrThrow(),
         trx
           .selectFrom("contacts")
           .selectAll()
           .where("id", "=", loserId)
+          .where("organization_id", "=", organizationId)
           .executeTakeFirstOrThrow(),
       ]);
 
@@ -110,6 +116,7 @@ async function mergeContacts(
         .updateTable("tasks")
         .set({ contact_id: winnerId })
         .where("contact_id", "=", loserId)
+        .where("organization_id", "=", organizationId)
         .execute();
 
       // 3. Reassign notes from loser to winner
@@ -117,6 +124,7 @@ async function mergeContacts(
         .updateTable("contact_notes")
         .set({ contact_id: winnerId })
         .where("contact_id", "=", loserId)
+        .where("organization_id", "=", organizationId)
         .execute();
 
       // 4. Update deals - replace loserId with winnerId in contact_ids array
@@ -124,18 +132,22 @@ async function mergeContacts(
         .selectFrom("deals")
         .selectAll()
         .where(sql`contact_ids @> ARRAY[${loserId}]::bigint[]`)
+        .where("organization_id", "=", organizationId)
         .execute();
 
       for (const deal of deals) {
+        // bigint[] comes back as strings; normalize before comparing ids.
+        const currentIds = (deal.contact_ids ?? []).map(Number);
         const newContactIds = [
           ...new Set(
-            deal.contact_ids.filter((id) => id !== loserId).concat(winnerId),
+            currentIds.filter((id) => id !== loserId).concat(winnerId),
           ),
         ];
         await trx
           .updateTable("deals")
           .set({ contact_ids: newContactIds })
           .where("id", "=", deal.id)
+          .where("organization_id", "=", organizationId)
           .execute();
       }
 
@@ -145,10 +157,15 @@ async function mergeContacts(
         .updateTable("contacts")
         .set(mergedData)
         .where("id", "=", winnerId)
+        .where("organization_id", "=", organizationId)
         .execute();
 
       // 6. Delete loser contact
-      await trx.deleteFrom("contacts").where("id", "=", loserId).execute();
+      await trx
+        .deleteFrom("contacts")
+        .where("id", "=", loserId)
+        .where("organization_id", "=", organizationId)
+        .execute();
 
       return { success: true, winnerId };
     });
@@ -159,36 +176,65 @@ async function mergeContacts(
 }
 
 Deno.serve(async (req: Request) =>
-  OptionsMiddleware(req, async (req) =>
-    AuthMiddleware(req, async (req) =>
-      UserMiddleware(req, async (req, user) => {
-        // Handle POST request
-        if (req.method === "POST") {
-          try {
-            const { loserId, winnerId } = await req.json();
+  OptionsMiddleware(req, async (req) => {
+    if (req.method !== "POST") {
+      return createErrorResponse(405, "Method Not Allowed");
+    }
 
-            if (!loserId || !winnerId) {
-              return createErrorResponse(400, "Missing loserId or winnerId");
-            }
+    let caller: CallerIdentity;
+    try {
+      caller = await verifyCaller(req);
+    } catch {
+      return createErrorResponse(401, "Invalid authentication");
+    }
 
-            const result = await mergeContacts(loserId, winnerId, user.id);
+    const body = (await req.json().catch(() => ({}))) as {
+      loserId?: number;
+      winnerId?: number;
+    };
+    const loserId = Number(body.loserId);
+    const winnerId = Number(body.winnerId);
+    if (!Number.isInteger(loserId) || !Number.isInteger(winnerId)) {
+      return createErrorResponse(400, "Missing loserId or winnerId");
+    }
 
-            return new Response(JSON.stringify(result), {
-              headers: { "Content-Type": "application/json", ...corsHeaders },
-            });
-          } catch (error) {
-            console.error("Merge failed:", error);
-            return createErrorResponse(
-              500,
-              `Failed to merge contacts: ${
-                error instanceof Error ? error.message : "Unknown error"
-              }`,
-            );
-          }
-        }
+    try {
+      // Privileged read: compare both rows' organizations before touching any
+      // data, because the merge runs with the service-role connection.
+      const contacts = await db
+        .selectFrom("contacts")
+        .select(["id", "organization_id"])
+        .where("id", "in", [loserId, winnerId])
+        .execute();
 
-        return createErrorResponse(405, "Method Not Allowed");
-      }),
-    ),
-  ),
+      const authorization = authorizeMerge(
+        contacts,
+        loserId,
+        winnerId,
+        caller.organizationId,
+      );
+      if (!authorization.allowed) {
+        return createErrorResponse(authorization.status, authorization.message);
+      }
+
+      const result = await mergeContacts(
+        loserId,
+        winnerId,
+        caller,
+        authorization.organizationId,
+      );
+
+      return new Response(JSON.stringify(result), {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    } catch (error) {
+      console.error("Merge failed:", error);
+      return createErrorResponse(
+        500,
+        `Failed to merge contacts: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      );
+    }
+  }),
 );

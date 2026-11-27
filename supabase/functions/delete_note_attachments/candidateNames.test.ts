@@ -2,6 +2,7 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { getCandidateNames, type WebhookPayload } from "./candidateNames";
 
+const ORG = "org_test";
 const BUCKET_URL =
   "http://127.0.0.1:54321/storage/v1/object/public/attachments";
 
@@ -13,78 +14,89 @@ describe("getCandidateNames", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns the file names stored in the attachments paths", () => {
+  it("returns the organization-scoped paths stored in the attachments", () => {
     const payload = payloadWith([
-      { path: "0.8262106278726917.pdf" },
-      { path: "0.1234" },
+      { path: `${ORG}/0.8262106278726917.pdf` },
+      { path: `${ORG}/0.1234` },
     ]);
 
-    expect(getCandidateNames(payload)).toEqual([
-      "0.8262106278726917.pdf",
-      "0.1234",
+    expect(getCandidateNames(payload, ORG)).toEqual([
+      `${ORG}/0.8262106278726917.pdf`,
+      `${ORG}/0.1234`,
     ]);
   });
 
-  it("reads the name from the src URL when the path is missing or empty", () => {
+  it("reads the path from the src URL when the path is missing or empty", () => {
     const payload = payloadWith([
-      { src: `${BUCKET_URL}/0.11.pdf` },
-      { path: "", src: `${BUCKET_URL}/0.22.png` },
-      { path: null, src: `${BUCKET_URL}/0.33.my%20ext` },
+      { src: `${BUCKET_URL}/${ORG}/0.11.pdf` },
+      { path: "", src: `${BUCKET_URL}/${ORG}/0.22.png` },
+      { path: null, src: `${BUCKET_URL}/${ORG}/0.33.my%20ext` },
     ]);
 
-    expect(getCandidateNames(payload)).toEqual([
-      "0.11.pdf",
-      "0.22.png",
-      "0.33.my ext",
+    expect(getCandidateNames(payload, ORG)).toEqual([
+      `${ORG}/0.11.pdf`,
+      `${ORG}/0.22.png`,
+      `${ORG}/0.33.my ext`,
     ]);
   });
 
-  it("ignores names that do not look like files uploaded by the app", () => {
+  it("ignores other organizations, legacy root files, and unsafe names", () => {
     const payload = payloadWith([
-      { path: "../0.1.txt" },
-      { path: "dir/0.12.txt" },
-      { path: "attachments/0.13.txt" },
-      { path: "logo.png" },
-      { path: "0.14.tar.gz" },
-      { path: "9.5e-7.pdf" },
-      { src: `${BUCKET_URL}/logo.png` },
-      { src: `${BUCKET_URL}/..%2F0.15.txt` },
+      { path: "org_other/0.1.txt" },
+      { path: `${ORG}/../org_other/0.2.txt` },
+      { path: `${ORG}/dir/0.12.txt` },
+      { path: `${ORG}/attachments/0.13.txt` },
+      { path: `${ORG}/logo.png` },
+      { path: `${ORG}/0.14.tar.gz` },
+      { path: `${ORG}/9.5e-7.pdf` },
+      { path: "0.15.pdf" },
+      { src: `${BUCKET_URL}/0.16.pdf` },
+      { src: `${BUCKET_URL}/org_other/0.17.pdf` },
+      { src: `${BUCKET_URL}/${ORG}/..%2F0.18.txt` },
       { src: "not a url" },
     ]);
 
-    expect(getCandidateNames(payload)).toEqual([]);
+    expect(getCandidateNames(payload, ORG)).toEqual([]);
   });
 
   it("returns each name once", () => {
     const payload = payloadWith([
-      { path: "0.5.pdf" },
-      { path: "0.5.pdf", src: `${BUCKET_URL}/0.5.pdf` },
+      { path: `${ORG}/0.5.pdf` },
+      { path: `${ORG}/0.5.pdf`, src: `${BUCKET_URL}/${ORG}/0.5.pdf` },
     ]);
 
-    expect(getCandidateNames(payload)).toEqual(["0.5.pdf"]);
+    expect(getCandidateNames(payload, ORG)).toEqual([`${ORG}/0.5.pdf`]);
   });
 
-  it("returns no names when the payload has no usable attachments", () => {
-    expect(getCandidateNames({})).toEqual([]);
-    expect(getCandidateNames({ old_record: null })).toEqual([]);
+  it("returns no names without an organization or usable attachments", () => {
+    expect(getCandidateNames({}, ORG)).toEqual([]);
+    expect(getCandidateNames({ old_record: null }, ORG)).toEqual([]);
     expect(
-      getCandidateNames({
-        old_record: { attachments: "0.1.pdf" },
-      } as unknown as WebhookPayload),
+      getCandidateNames(payloadWith([{ path: `${ORG}/0.1.pdf` }]), ""),
     ).toEqual([]);
-    expect(getCandidateNames(payloadWith([null, 42, {}]))).toEqual([]);
+    expect(
+      getCandidateNames(
+        {
+          old_record: { attachments: "0.1.pdf" },
+        } as unknown as WebhookPayload,
+        ORG,
+      ),
+    ).toEqual([]);
+    expect(getCandidateNames(payloadWith([null, 42, {}]), ORG)).toEqual([]);
   });
 
   it("checks at most 100 names per call", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const payload = payloadWith(
-      Array.from({ length: 120 }, (_, i) => ({ path: `0.${i + 1}.pdf` })),
+      Array.from({ length: 120 }, (_, i) => ({
+        path: `${ORG}/0.${i + 1}.pdf`,
+      })),
     );
 
-    const names = getCandidateNames(payload);
+    const names = getCandidateNames(payload, ORG);
 
     expect(names).toHaveLength(100);
-    expect(names[0]).toBe("0.1.pdf");
-    expect(names[99]).toBe("0.100.pdf");
+    expect(names[0]).toBe(`${ORG}/0.1.pdf`);
+    expect(names[99]).toBe(`${ORG}/0.100.pdf`);
   });
 });

@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { sql } from "https://esm.sh/kysely@0.27.2";
-import { AuthMiddleware } from "../_shared/authentication.ts";
+import { verifyCaller } from "../_shared/authentication.ts";
 import { db } from "../_shared/db.ts";
 import { supabaseAdmin } from "../_shared/supabaseAdmin.ts";
 import { getCandidateNames, type WebhookPayload } from "./candidateNames.ts";
@@ -12,10 +12,11 @@ const ATTACHMENTS_BUCKET =
 // sending the note as it was before the change.
 //
 // Any logged-in user can call this endpoint with a made-up payload, so the
-// payload is not trusted: its attachments are only files we *may* delete.
-// Each of them is deleted only if no row of the database still uses it.
-// At worst, a caller can delete files that nothing uses anymore.
-const deleteNoteAttachments = async (req: Request) => {
+// payload is not trusted: only paths under the caller's organization are
+// considered, and each of them is deleted only if no row still uses it. At
+// worst, a caller can delete files of their own organization that nothing uses
+// anymore.
+const deleteNoteAttachments = async (req: Request, organizationId: string) => {
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method Not Allowed" }, 405);
   }
@@ -27,7 +28,7 @@ const deleteNoteAttachments = async (req: Request) => {
     return jsonResponse({ error: "Invalid JSON payload" }, 400);
   }
 
-  const candidates = getCandidateNames(payload);
+  const candidates = getCandidateNames(payload, organizationId);
   if (candidates.length === 0) {
     return jsonResponse({ status: "skipped", reason: "no_candidate_files" });
   }
@@ -59,9 +60,24 @@ const deleteNoteAttachments = async (req: Request) => {
   return jsonResponse({ status: "ok", deleted: data.length });
 };
 
-Deno.serve(async (req: Request) =>
-  AuthMiddleware(req, async (req: Request) => deleteNoteAttachments(req)),
-);
+Deno.serve(async (req: Request) => {
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Method Not Allowed" }, 405);
+  }
+
+  let organizationId: string | undefined;
+  try {
+    organizationId = (await verifyCaller(req)).organizationId;
+  } catch {
+    return jsonResponse({ error: "Unauthorized" }, 401);
+  }
+
+  if (!organizationId) {
+    return jsonResponse({ error: "No active organization" }, 403);
+  }
+
+  return deleteNoteAttachments(req, organizationId);
+});
 
 // Returns the files that no row uses anymore, among the given ones.
 //
@@ -79,7 +95,7 @@ Deno.serve(async (req: Request) =>
 const getUnreferencedNames = async (names: string[]): Promise<string[]> => {
   const { rows } = await sql<{ name: string }>`
     with candidates as (
-      select name, substring(name from '^0\\.[0-9]+') as stem
+      select name, substring(name from '0\.[0-9]+') as stem
       from jsonb_array_elements_text(${JSON.stringify(names)}::jsonb) as name
     ),
     refs as (

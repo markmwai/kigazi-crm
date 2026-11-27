@@ -28,6 +28,44 @@ create or replace trigger set_task_sales_id_trigger
     before insert on public.tasks
     for each row execute function public.set_sales_id_default();
 
+-- Auto-populate organization_id from the active Clerk organization on insert
+create or replace trigger set_company_organization_id_trigger
+    before insert on public.companies
+    for each row execute function public.set_organization_id_default();
+
+create or replace trigger set_contact_organization_id_trigger
+    before insert on public.contacts
+    for each row execute function public.set_organization_id_default();
+
+create or replace trigger set_contact_notes_organization_id_trigger
+    before insert on public.contact_notes
+    for each row execute function public.set_organization_id_default();
+
+create or replace trigger set_deal_organization_id_trigger
+    before insert on public.deals
+    for each row execute function public.set_organization_id_default();
+
+create or replace trigger set_deal_notes_organization_id_trigger
+    before insert on public.deal_notes
+    for each row execute function public.set_organization_id_default();
+
+create or replace trigger set_task_organization_id_trigger
+    before insert on public.tasks
+    for each row execute function public.set_organization_id_default();
+
+create or replace trigger set_tag_organization_id_trigger
+    before insert on public.tags
+    for each row execute function public.set_organization_id_default();
+
+-- Cross-organization array references (arrays cannot carry a foreign key)
+create or replace trigger validate_contact_tags_organization
+    before insert or update on public.contacts
+    for each row execute function public.validate_contact_tag_organizations();
+
+create or replace trigger validate_deal_contacts_organization
+    before insert or update on public.deals
+    for each row execute function public.validate_deal_contact_organizations();
+
 -- Auto-fetch company logo from website favicon on save
 create or replace trigger company_saved
     before insert or update on public.companies
